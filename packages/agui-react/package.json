@@ -29,5 +29,14 @@
     "@types/react": "^18",
     "tsup": "^8",
     "typescript": "^5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rinkesh2010rpp/agui-react-client.git",
+    "directory": "packages/agui-react"
+  },
+  "homepage": "https://github.com/rinkesh2010rpp/agui-react-client/tree/master/packages/agui-react#readme",
+  "bugs": {
+    "url": "https://github.com/rinkesh2010rpp/agui-react-client/issues"
   }
 }
