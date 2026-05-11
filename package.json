@@ -1,0 +1,13 @@
+{
+  "name": "agentui-workspace",
+  "private": true,
+  "workspaces": [
+    "app",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=app",
+    "build": "npm run build --workspace=app",
+    "typecheck": "npm run typecheck --workspace=packages/agui-react && npm run typecheck --workspace=app"
+  }
+}
