@@ -78,13 +78,17 @@ interface AgentRun {
   runId: string;
   source: 'user' | 'agent';   // who initiated the run
   userInput?: string;          // the user's message (when source === 'user')
-  response: string;            // the agent's text response, fully accumulated
-  toolCalls: ToolCallState[];  // all tool calls in this run, in arrival order
+  items: RunItem[];            // text messages and tool calls in arrival order
   reasoning?: ReasoningState;  // extended thinking block, if emitted
   isStreaming: boolean;
   status: 'streaming' | 'finished' | 'error';
   timestamp: number;
 }
+
+// Each item is either a streamed text message or a tool call
+type RunItem =
+  | { kind: 'text'; messageId: string; content: string; isComplete: boolean }
+  | { kind: 'tool'; toolCallId: string; toolCallName: string; argsAccumulated: string; argsComplete: boolean; result?: string; status: string }
 ```
 
 #### `agentState.currentRun` — the live run
@@ -99,8 +103,11 @@ allRuns.map(run => (
   <div key={run.runId}>
     {run.userInput && <Bubble direction="out">{run.userInput}</Bubble>}
     <Bubble direction="in">
-      {run.toolCalls.map(tc => <ToolCallCard key={tc.toolCallId} tc={tc} />)}
-      {run.response}
+      {run.items.map(item =>
+        item.kind === 'tool'
+          ? <ToolCallCard key={item.toolCallId} tc={item} />
+          : <span key={item.messageId}>{item.content}</span>
+      )}
     </Bubble>
   </div>
 ))
@@ -122,12 +129,14 @@ Set while a `STEP_STARTED` event is active (e.g. a named agent step like `"searc
 
 ---
 
-### Tool call state
+### Tool call items
 
-Each `ToolCallState` in `run.toolCalls` streams in real time:
+Tool call items in `run.items` stream in real time:
 
 ```typescript
-interface ToolCallState {
+// item.kind === 'tool'
+{
+  kind: 'tool';
   toolCallId: string;
   toolCallName: string;
   argsAccumulated: string; // raw JSON, grows with each TOOL_CALL_ARGS delta
@@ -138,7 +147,7 @@ interface ToolCallState {
 ```
 
 ```tsx
-function ToolCallCard({ tc }: { tc: ToolCallState }) {
+function ToolCallCard({ tc }: { tc: RunItem & { kind: 'tool' } }) {
   return (
     <div>
       <strong>{tc.toolCallName}</strong>

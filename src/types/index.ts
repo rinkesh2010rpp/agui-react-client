@@ -29,14 +29,24 @@ export interface ReasoningState {
   isComplete: boolean;
 }
 
+export interface TextMessageState {
+  messageId: string;
+  content: string;
+  isComplete: boolean;
+}
+
+// Discriminated union — one entry per text message or tool call, in arrival order
+export type RunItem =
+  | ({ kind: "text" } & TextMessageState)
+  | ({ kind: "tool" } & ToolCallState);
+
 // Primary UI unit — everything between RUN_STARTED and RUN_FINISHED
 export interface AgentRun {
   runId: string;
   source: "user" | "agent";
   userInput?: string;
-  toolCalls: ToolCallState[];
+  items: RunItem[];
   reasoning?: ReasoningState;
-  response: string;
   isStreaming: boolean;
   status: "streaming" | "finished" | "error";
   error?: string;
@@ -57,8 +67,10 @@ export interface RunState {
   agentState: AgentState;
   threadId: string;
   runId: string;
-  // O(1) lookup for tool call updates during streaming hot path
-  toolCallsById: Map<string, ToolCallState>;
+  // O(1) lookup for item updates during streaming hot path (keyed by messageId or toolCallId)
+  itemsById: Map<string, RunItem>;
+  // Tracks the most recently started text message for CHUNK events without messageId
+  currentTextMessageId: string | null;
   // Wire-format message history sent to agent on next turn
   confirmedMessages: Message[];
 }
