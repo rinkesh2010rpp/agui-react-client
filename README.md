@@ -85,10 +85,23 @@ interface AgentRun {
   timestamp: number;
 }
 
-// Each item is either a streamed text message or a tool call
+// Each item is either a streamed text message or a tool call, in arrival order
 type RunItem =
-  | { kind: 'text'; messageId: string; content: string; isComplete: boolean }
-  | { kind: 'tool'; toolCallId: string; toolCallName: string; argsAccumulated: string; argsComplete: boolean; result?: string; status: string }
+  | {
+      kind: 'text';
+      messageId: string;
+      content: string;
+      isComplete: boolean;  // false while tokens are still arriving; true after TEXT_MESSAGE_END
+    }
+  | {
+      kind: 'tool';
+      toolCallId: string;
+      toolCallName: string;
+      argsAccumulated: string;  // raw JSON, grows with each TOOL_CALL_ARGS delta
+      argsComplete: boolean;    // true after TOOL_CALL_END
+      result?: string;          // set on TOOL_CALL_RESULT
+      status: 'streaming' | 'done' | 'has-result' | 'error';
+    }
 ```
 
 #### `agentState.currentRun` — the live run
@@ -103,10 +116,20 @@ allRuns.map(run => (
   <div key={run.runId}>
     {run.userInput && <Bubble direction="out">{run.userInput}</Bubble>}
     <Bubble direction="in">
+      {/* reasoning block appears before items if the agent emitted extended thinking */}
+      {run.reasoning && <ReasoningBlock reasoning={run.reasoning} />}
+
+      {/* items render in the exact order they arrived from the stream */}
       {run.items.map(item =>
         item.kind === 'tool'
           ? <ToolCallCard key={item.toolCallId} tc={item} />
-          : <span key={item.messageId}>{item.content}</span>
+          : (
+            <span key={item.messageId}>
+              {item.content}
+              {/* streaming cursor — visible while this message is still being typed */}
+              {!item.isComplete && <span className="animate-pulse">▊</span>}
+            </span>
+          )
       )}
     </Bubble>
   </div>
@@ -161,6 +184,39 @@ function ToolCallCard({ tc }: { tc: RunItem & { kind: 'tool' } }) {
   );
 }
 ```
+
+---
+
+### Common patterns
+
+#### Detecting streaming / disabling input
+
+```tsx
+const isStreaming =
+  agentState.status === 'streaming' || agentState.status === 'connecting';
+
+// Disable send while streaming; show a stop button
+<button onClick={abort} disabled={!isStreaming}>Stop</button>
+<input disabled={isStreaming} onSubmit={sendMessage} />
+```
+
+#### Showing a typing indicator
+
+```tsx
+{isStreaming && <TypingIndicator />}
+```
+
+#### Handling errors
+
+```tsx
+{agentState.status === 'error' && (
+  <div className="error">{agentState.error ?? 'Unknown error'}</div>
+)}
+```
+
+#### Re-sending cancels the active run
+
+`sendMessage` automatically aborts any in-progress run before starting a new one. You don't need to call `abort` first.
 
 ---
 

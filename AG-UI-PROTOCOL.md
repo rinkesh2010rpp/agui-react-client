@@ -41,7 +41,7 @@ All events share a base shape:
 
 ### Text Messages
 
-Events stream a single assistant text message token-by-token.
+Events stream one or more assistant text messages per run, token-by-token.
 
 | Event | Payload extras |
 |---|---|
@@ -58,6 +58,7 @@ Events stream a single assistant text message token-by-token.
 | `TOOL_CALL_ARGS` | `toolCallId`, `delta` (JSON fragment) |
 | `TOOL_CALL_END` | `toolCallId` |
 | `TOOL_CALL_RESULT` | `toolCallId`, `content`, `role: "tool"` |
+| `TOOL_CALL_CHUNK` | `toolCallId`, `toolCallName?`, `delta?` — first chunk carries name (acts as START); subsequent chunks carry `delta` (acts as ARGS) |
 
 Args are streamed as raw JSON fragments that accumulate into the full args object.
 
@@ -158,7 +159,7 @@ interface ToolCall {
 
 ```ts
 const { agentState, sendMessage, abort } = useAgentRun({
-  agentConfig: { url: string; headers: Record<string, string> },
+  config: { url: string; headers: Record<string, string> },
   handlers?: HandlerRegistry,   // custom event name → handler fn
   tools?: Tool[],
   context?: Context[],
