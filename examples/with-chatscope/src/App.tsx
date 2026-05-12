@@ -9,7 +9,7 @@ import {
 } from "@chatscope/chat-ui-kit-react";
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
 import { useAgentRun, useUIState } from "@agentui/react";
-import type { AgentConfig, AgentRun, ToolCallState } from "@agentui/react";
+import type { AgentConfig, AgentRun, RunItem } from "@agentui/react";
 import { StatusBar } from "./components/StatusBar";
 import { ToolCallCard } from "./components/ToolCallCard";
 import { AgentConfigPanel } from "./components/AgentConfigPanel";
@@ -74,14 +74,18 @@ function renderRun(run: AgentRun): React.ReactNode[] {
     );
   }
 
-  const hasCustomContent = run.toolCalls.length > 0 || !!run.reasoning;
+  const hasCustomContent = run.items.some((i) => i.kind === "tool") || !!run.reasoning;
 
   if (!hasCustomContent) {
+    const displayText = run.items
+      .filter((i): i is RunItem & { kind: "text" } => i.kind === "text")
+      .map((m) => m.content)
+      .join("") || "…";
     nodes.push(
       <Message
         key={`${run.runId || run.timestamp}-assistant`}
         model={{
-          message: run.response || "…",
+          message: displayText,
           sender: "assistant",
           direction: "incoming",
           position: "single",
@@ -109,20 +113,21 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           <div className="py-1 space-y-1">
             {run.reasoning && <ReasoningBlock reasoning={run.reasoning} />}
 
-            {run.toolCalls.map((tc: ToolCallState) => (
-              <ToolCallCard key={tc.toolCallId} tc={tc} />
-            ))}
+            {run.items.map((item: RunItem) => {
+              if (item.kind === "tool") {
+                return <ToolCallCard key={item.toolCallId} tc={item} />;
+              }
+              return (
+                <div key={item.messageId} className="px-1 pt-1 text-sm text-gray-800 whitespace-pre-wrap">
+                  {item.content}
+                  {run.isStreaming && !item.isComplete && (
+                    <span className="animate-pulse text-gray-400 ml-0.5">▊</span>
+                  )}
+                </div>
+              );
+            })}
 
-            {run.response && (
-              <div className="px-1 pt-1 text-sm text-gray-800 whitespace-pre-wrap">
-                {run.response}
-                {run.isStreaming && (
-                  <span className="animate-pulse text-gray-400 ml-0.5">▊</span>
-                )}
-              </div>
-            )}
-
-            {!run.response && run.isStreaming && (
+            {run.items.length === 0 && run.isStreaming && (
               <span className="animate-pulse text-gray-400 text-sm px-1">▊</span>
             )}
           </div>

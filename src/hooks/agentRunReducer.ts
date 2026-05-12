@@ -2,6 +2,7 @@ import {
   EventType,
   type AGUIEvent,
   type Message,
+  type TextMessageStartEvent,
   type TextMessageContentEvent,
   type TextMessageChunkEvent,
   type TextMessageEndEvent,
@@ -9,6 +10,7 @@ import {
   type ToolCallArgsEvent,
   type ToolCallEndEvent,
   type ToolCallResultEvent,
+  type ToolCallChunkEvent,
   type RunStartedEvent,
   type RunErrorEvent,
   type StepStartedEvent,
@@ -17,7 +19,7 @@ import {
   type ReasoningMessageEndEvent,
   type CustomEvent,
 } from "@ag-ui/core";
-import type { RunState, AgentRun, ToolCallState, ReasoningState } from "../types";
+import type { RunState, AgentRun, RunItem, ToolCallState, TextMessageState, ReasoningState } from "../types";
 
 export type ReducerAction =
   | { type: "RUN_INIT"; userInput: string; userMessageId: string }
@@ -35,7 +37,8 @@ export function initialRunState(): RunState {
     },
     threadId: "",
     runId: "",
-    toolCallsById: new Map(),
+    itemsById: new Map(),
+    currentTextMessageId: null,
     confirmedMessages: [],
   };
 }
@@ -69,8 +72,7 @@ function handleRunInit(state: RunState, userInput: string, userMessageId: string
     runId: "",
     source: "user",
     userInput,
-    toolCalls: [],
-    response: "",
+    items: [],
     isStreaming: true,
     status: "streaming",
     timestamp: Date.now(),
@@ -91,7 +93,8 @@ function handleRunInit(state: RunState, userInput: string, userMessageId: string
       currentStep: undefined,
       error: undefined,
     },
-    toolCallsById: new Map(),
+    itemsById: new Map(),
+    currentTextMessageId: null,
     confirmedMessages: [...state.confirmedMessages, userCoreMessage],
   };
 }
@@ -114,13 +117,15 @@ function handleAGUIEvent(state: RunState, event: AGUIEvent): RunState {
         agentState: { ...state.agentState, currentStep: undefined },
       };
     case EventType.TEXT_MESSAGE_START:
-      return state;
+      return handleTextStart(state, event as TextMessageStartEvent);
     case EventType.TEXT_MESSAGE_CONTENT:
       return handleTextContent(state, event as TextMessageContentEvent);
     case EventType.TEXT_MESSAGE_CHUNK:
       return handleTextChunk(state, event as TextMessageChunkEvent);
     case EventType.TEXT_MESSAGE_END:
       return handleTextEnd(state, event as TextMessageEndEvent);
+    case EventType.TOOL_CALL_CHUNK:
+      return handleToolCallChunk(state, event as ToolCallChunkEvent);
     case EventType.TOOL_CALL_START:
       return handleToolCallStart(state, event as ToolCallStartEvent);
     case EventType.TOOL_CALL_ARGS:
@@ -142,6 +147,7 @@ function handleAGUIEvent(state: RunState, event: AGUIEvent): RunState {
     case EventType.REASONING_MESSAGE_END:
     case EventType.THINKING_TEXT_MESSAGE_END:
       return handleReasoningEnd(state, event as ReasoningMessageEndEvent);
+    case EventType.THINKING_END:
     case EventType.REASONING_END:
       return state;
     case EventType.MESSAGES_SNAPSHOT:
@@ -198,7 +204,8 @@ function handleRunFinished(state: RunState): RunState {
       currentStep: undefined,
     },
     confirmedMessages: newConfirmed,
-    toolCallsById: new Map(),
+    itemsById: new Map(),
+    currentTextMessageId: null,
   };
 }
 
@@ -229,88 +236,159 @@ function handleStepStarted(state: RunState, event: StepStartedEvent): RunState {
 
 // ─── Text response ───────────────────────────────────────────────────────────
 
+function handleTextStart(state: RunState, event: TextMessageStartEvent): RunState {
+  const item: RunItem = { kind: "text", messageId: event.messageId, content: "", isComplete: false };
+  const newMap = new Map(state.itemsById);
+  newMap.set(event.messageId, item);
+  return {
+    ...patchCurrentRun(state, (run) => ({ ...run, items: [...run.items, item] })),
+    itemsById: newMap,
+    currentTextMessageId: event.messageId,
+  };
+}
+
 function handleTextContent(state: RunState, event: TextMessageContentEvent): RunState {
-  return patchCurrentRun(state, (run) => ({
-    ...run,
-    response: run.response + event.delta,
-  }));
+  const existing = state.itemsById.get(event.messageId);
+  if (!existing || existing.kind !== "text") {
+    console.warn("[agui-react] TEXT_MESSAGE_CONTENT for unknown messageId", event.messageId);
+    return state;
+  }
+  return updateItem(state, { ...existing, content: existing.content + event.delta });
 }
 
 function handleTextChunk(state: RunState, event: TextMessageChunkEvent): RunState {
   if (!event.delta) return state;
-  return patchCurrentRun(state, (run) => ({
-    ...run,
-    response: run.response + event.delta,
-  }));
+  const id = event.messageId ?? state.currentTextMessageId;
+
+  if (id) {
+    const existing = state.itemsById.get(id);
+    if (existing && existing.kind === "text") {
+      return updateItem(state, { ...existing, content: existing.content + event.delta });
+    }
+    // First chunk with a new messageId — auto-create
+    const item: RunItem = { kind: "text", messageId: id, content: event.delta, isComplete: false };
+    const newMap = new Map(state.itemsById);
+    newMap.set(id, item);
+    return {
+      ...patchCurrentRun(state, (run) => ({ ...run, items: [...run.items, item] })),
+      itemsById: newMap,
+      currentTextMessageId: id,
+    };
+  }
+
+  // No id — append to last text item or create anonymous
+  const lastTextId = [...state.itemsById.entries()]
+    .filter(([, v]) => v.kind === "text")
+    .map(([k]) => k)
+    .pop();
+  const targetId = lastTextId ?? `anon-${Date.now()}`;
+  const existing = state.itemsById.get(targetId);
+  if (existing && existing.kind === "text") {
+    return updateItem(state, { ...existing, content: existing.content + event.delta });
+  }
+  const item: RunItem = { kind: "text", messageId: targetId, content: event.delta, isComplete: false };
+  const newMap = new Map(state.itemsById);
+  newMap.set(targetId, item);
+  return {
+    ...patchCurrentRun(state, (run) => ({ ...run, items: [...run.items, item] })),
+    itemsById: newMap,
+    currentTextMessageId: targetId,
+  };
 }
 
-function handleTextEnd(state: RunState, _event: TextMessageEndEvent): RunState {
-  return state;
+function handleTextEnd(state: RunState, event: TextMessageEndEvent): RunState {
+  const id = event.messageId ?? state.currentTextMessageId;
+  if (!id) return state;
+  const existing = state.itemsById.get(id);
+  if (!existing || existing.kind !== "text") return state;
+  const next = updateItem(state, { ...existing, isComplete: true });
+  return next.currentTextMessageId === id ? { ...next, currentTextMessageId: null } : next;
 }
 
 // ─── Tool calls ──────────────────────────────────────────────────────────────
 
 function handleToolCallStart(state: RunState, event: ToolCallStartEvent): RunState {
-  const tc: ToolCallState = {
+  const item: RunItem = {
+    kind: "tool",
     toolCallId: event.toolCallId,
     toolCallName: event.toolCallName,
     argsAccumulated: "",
     argsComplete: false,
     status: "streaming",
   };
-
-  const newToolCallsById = new Map(state.toolCallsById);
-  newToolCallsById.set(tc.toolCallId, tc);
-
+  const newMap = new Map(state.itemsById);
+  newMap.set(event.toolCallId, item);
   return {
-    ...patchCurrentRun(state, (run) => ({
-      ...run,
-      toolCalls: [...run.toolCalls, tc],
-    })),
-    toolCallsById: newToolCallsById,
+    ...patchCurrentRun(state, (run) => ({ ...run, items: [...run.items, item] })),
+    itemsById: newMap,
   };
 }
 
 function handleToolCallArgs(state: RunState, event: ToolCallArgsEvent): RunState {
-  const existing = state.toolCallsById.get(event.toolCallId);
-  if (!existing) {
+  const existing = state.itemsById.get(event.toolCallId);
+  if (!existing || existing.kind !== "tool") {
     console.warn("[agui-react] TOOL_CALL_ARGS for unknown toolCallId", event.toolCallId);
     return state;
   }
-
-  const updated: ToolCallState = {
-    ...existing,
-    argsAccumulated: existing.argsAccumulated + event.delta,
-  };
-
-  return updateToolCall(state, updated);
+  return updateItem(state, { ...existing, argsAccumulated: existing.argsAccumulated + event.delta });
 }
 
 function handleToolCallEnd(state: RunState, event: ToolCallEndEvent): RunState {
-  const existing = state.toolCallsById.get(event.toolCallId);
-  if (!existing) return state;
-
-  const updated: ToolCallState = {
-    ...existing,
-    argsComplete: true,
-    status: "done",
-  };
-
-  return updateToolCall(state, updated);
+  const existing = state.itemsById.get(event.toolCallId);
+  if (!existing || existing.kind !== "tool") return state;
+  return updateItem(state, { ...existing, argsComplete: true, status: "done" });
 }
 
 function handleToolCallResult(state: RunState, event: ToolCallResultEvent): RunState {
-  const existing = state.toolCallsById.get(event.toolCallId);
-  if (!existing) return state;
-
-  const updated: ToolCallState = {
+  const existing = state.itemsById.get(event.toolCallId);
+  if (!existing || existing.kind !== "tool") return state;
+  return updateItem(state, {
     ...existing,
     result: event.content,
     resultMessageId: event.messageId,
     status: "has-result",
-  };
+  });
+}
 
-  return updateToolCall(state, updated);
+function handleToolCallChunk(state: RunState, event: ToolCallChunkEvent): RunState {
+  // First chunk — carries toolCallId + toolCallName, acts like TOOL_CALL_START
+  if (event.toolCallName && !state.itemsById.has(event.toolCallId ?? "")) {
+    if (!event.toolCallId) {
+      console.warn("[agui-react] TOOL_CALL_CHUNK first chunk missing toolCallId");
+      return state;
+    }
+    const item: RunItem = {
+      kind: "tool",
+      toolCallId: event.toolCallId,
+      toolCallName: event.toolCallName,
+      argsAccumulated: event.delta ?? "",
+      argsComplete: false,
+      status: "streaming",
+    };
+    const newMap = new Map(state.itemsById);
+    newMap.set(event.toolCallId, item);
+    return {
+      ...patchCurrentRun(state, (run) => ({ ...run, items: [...run.items, item] })),
+      itemsById: newMap,
+    };
+  }
+
+  // Subsequent chunks — append delta, acts like TOOL_CALL_ARGS
+  if (!event.delta) return state;
+  const toolKeys = [...state.itemsById.entries()]
+    .filter(([, v]) => v.kind === "tool")
+    .map(([k]) => k);
+  const targetId = event.toolCallId ?? toolKeys[toolKeys.length - 1];
+  if (!targetId) {
+    console.warn("[agui-react] TOOL_CALL_CHUNK delta with no resolvable toolCallId");
+    return state;
+  }
+  const existing = state.itemsById.get(targetId);
+  if (!existing || existing.kind !== "tool") {
+    console.warn("[agui-react] TOOL_CALL_CHUNK delta for unknown toolCallId", targetId);
+    return state;
+  }
+  return updateItem(state, { ...existing, argsAccumulated: existing.argsAccumulated + event.delta });
 }
 
 // ─── Reasoning ───────────────────────────────────────────────────────────────
@@ -375,46 +453,61 @@ function patchCurrentRun(
   };
 }
 
-function updateToolCall(state: RunState, updated: ToolCallState): RunState {
-  const newToolCallsById = new Map(state.toolCallsById);
-  newToolCallsById.set(updated.toolCallId, updated);
-
+function updateItem(state: RunState, updated: RunItem): RunState {
+  const id = updated.kind === "text" ? updated.messageId : updated.toolCallId;
+  const newMap = new Map(state.itemsById);
+  newMap.set(id, updated);
   return {
     ...patchCurrentRun(state, (run) => ({
       ...run,
-      toolCalls: run.toolCalls.map((tc) =>
-        tc.toolCallId === updated.toolCallId ? updated : tc
-      ),
+      items: run.items.map((item) => {
+        const itemId = item.kind === "text" ? item.messageId : item.toolCallId;
+        return itemId === id ? updated : item;
+      }),
     })),
-    toolCallsById: newToolCallsById,
+    itemsById: newMap,
   };
 }
 
 function buildConfirmedMessages(state: RunState, run: AgentRun): Message[] {
   const additions: Message[] = [];
+  const textItems = run.items.filter((i): i is RunItem & { kind: "text" } => i.kind === "text");
+  const toolItems = run.items.filter((i): i is RunItem & { kind: "tool" } => i.kind === "tool");
 
-  // Assistant message with optional text and tool calls
-  const assistantMsg: Message = {
-    id: run.runId || `run-${Date.now()}`,
-    role: "assistant",
-    ...(run.response ? { content: run.response } : {}),
-    ...(run.toolCalls.length > 0
-      ? {
-          toolCalls: run.toolCalls.map((tc) => ({
-            id: tc.toolCallId,
-            type: "function" as const,
-            function: {
-              name: tc.toolCallName,
-              arguments: tc.argsAccumulated,
-            },
-          })),
-        }
-      : {}),
-  };
-  additions.push(assistantMsg);
+  if (textItems.length > 0) {
+    // One assistant message per text message; tool calls attach to the last one
+    textItems.forEach((tm, i) => {
+      const isLast = i === textItems.length - 1;
+      additions.push({
+        id: tm.messageId,
+        role: "assistant",
+        content: tm.content,
+        ...(isLast && toolItems.length > 0
+          ? {
+              toolCalls: toolItems.map((tc) => ({
+                id: tc.toolCallId,
+                type: "function" as const,
+                function: { name: tc.toolCallName, arguments: tc.argsAccumulated },
+              })),
+            }
+          : {}),
+      });
+    });
+  } else if (toolItems.length > 0) {
+    // No text — standalone assistant message carrying only tool calls
+    additions.push({
+      id: run.runId || `run-${Date.now()}`,
+      role: "assistant",
+      toolCalls: toolItems.map((tc) => ({
+        id: tc.toolCallId,
+        type: "function" as const,
+        function: { name: tc.toolCallName, arguments: tc.argsAccumulated },
+      })),
+    });
+  }
 
   // Tool result messages in tool call order
-  for (const tc of run.toolCalls) {
+  for (const tc of toolItems) {
     if (tc.result !== undefined) {
       additions.push({
         id: tc.resultMessageId ?? `result-${tc.toolCallId}`,

@@ -5,9 +5,11 @@ export type {
   AgentState,
   AgentConfig,
   AgentRun,
+  RunItem,
   ConnectionStatus,
   ToolCallState,
   ReasoningState,
+  TextMessageState,
   HandlerRegistry,
 } from "./types";
 
