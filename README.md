@@ -27,6 +27,54 @@ Open the app, enter your AG-UI agent's URL in the config panel, and start chatti
 
 > **Note:** The package is not yet published to npm. To use it today, clone this repo and reference it via a local path or npm workspace.
 
+### Quick start
+
+The two hooks give you everything you need. Here is the minimal pattern — replace the plain HTML with whatever component library you prefer:
+
+```tsx
+import { useAgentRun, useUIState } from '@agentui/react';
+import type { RunItem } from '@agentui/react';
+
+export function AgentChat() {
+  const [uiState] = useUIState({});
+  const { agentState, sendMessage, abort } = useAgentRun({
+    config: { url: 'https://your-agent.example.com/run', headers: {} },
+    uiState,
+  });
+
+  const isStreaming =
+    agentState.status === 'streaming' || agentState.status === 'connecting';
+
+  const allRuns = [
+    ...agentState.runs,
+    ...(agentState.currentRun ? [agentState.currentRun] : []),
+  ];
+
+  return (
+    <div>
+      {allRuns.map(run => (
+        <div key={run.runId}>
+          {run.userInput && <p><strong>You:</strong> {run.userInput}</p>}
+
+          {run.items.map((item: RunItem) =>
+            item.kind === 'text'
+              ? <p key={item.messageId}>{item.content}{!item.isComplete && '▊'}</p>
+              : <pre key={item.toolCallId}>{item.toolCallName}({item.argsAccumulated})</pre>
+          )}
+        </div>
+      ))}
+
+      {agentState.status === 'error' && <p>{agentState.error}</p>}
+
+      <input onKeyDown={e => e.key === 'Enter' && sendMessage(e.currentTarget.value)} />
+      {isStreaming && <button onClick={abort}>Stop</button>}
+    </div>
+  );
+}
+```
+
+---
+
 ### Hooks
 
 #### `useAgentRun(options)` → `{ agentState, sendMessage, abort }`
@@ -34,36 +82,77 @@ Open the app, enter your AG-UI agent's URL in the config panel, and start chatti
 The main hook. Manages the SSE connection to your agent and reduces all incoming events into a single `agentState` object.
 
 ```tsx
-import { useAgentRun, useUIState } from '@agentui/react';
-
-const [uiState, ui] = useUIState({ page: 'home' });
+import { useAgentRun } from '@agentui/react';
 
 const { agentState, sendMessage, abort } = useAgentRun({
   config: {
     url: 'https://your-agent.example.com/run',
     headers: { Authorization: 'Bearer ...' },
   },
-  uiState,   // sent to the agent as `state` on every run
+  uiState,    // sent to the agent as `state` on every run
   handlers: {
-    // called when the agent emits a CUSTOM event
-    navigate: (data) => router.push(data.path),
+    // called when the agent emits a CUSTOM event named "navigate"
+    navigate: (data) => router.push((data as { path: string }).path),
   },
 });
 ```
 
-Calling `sendMessage` while a run is active cancels it first. Calling `abort` mid-stream stops the current run cleanly.
+**Options**
+
+| Option | Type | Required | Description |
+|---|---|---|---|
+| `config.url` | `string` | Yes | Endpoint that accepts AG-UI runs |
+| `config.headers` | `Record<string, string>` | Yes | HTTP headers (e.g. auth) |
+| `uiState` | `TUIState` | Yes | Current UI state sent to the agent on every run |
+| `handlers` | `HandlerRegistry` | No | Map of custom event names to handler functions |
+
+**Returns**
+
+| Value | Type | Description |
+|---|---|---|
+| `agentState` | `AgentState` | Full reactive state — see [State reference](#state) below |
+| `sendMessage(text)` | `(text: string) => void` | Start a new run. Cancels any in-progress run first. |
+| `abort()` | `() => void` | Stop the current run immediately |
 
 #### `useUIState(initial)` → `[state, updaters]`
 
-Manages the state your app sends to the agent so it can understand current UI context.
+Manages the state your app sends to the agent so it can understand current UI context. Anything you want the agent to be aware of (current page, selected items, filters) goes here.
 
 ```tsx
+import { useUIState } from '@agentui/react';
+
 const [uiState, ui] = useUIState({ page: 'home', selectedIds: [] });
 
-ui.update({ page: 'settings' });           // partial update
+ui.update({ page: 'settings' });           // partial update — merges into current state
 ui.set({ page: 'home', selectedIds: [] }); // full replace
 ui.reset();                                // back to initial value
 ```
+
+Pass `uiState` directly into `useAgentRun`. The agent receives it as `state` in every `RunAgentInput` payload.
+
+---
+
+### Custom event handlers
+
+When your agent emits a `CUSTOM` event, the library routes it to the matching handler in `handlers` rather than putting it in state. This is the escape hatch for agent-driven side effects (navigation, toasts, UI mutations) that don't fit the message model.
+
+```tsx
+const { agentState, sendMessage } = useAgentRun({
+  config,
+  uiState,
+  handlers: {
+    navigate: (data) => {
+      // data is the raw `value` field from the CUSTOM event
+      router.push((data as { path: string }).path);
+    },
+    showToast: (data) => {
+      toast((data as { message: string }).message);
+    },
+  },
+});
+```
+
+The handler type is `(data: unknown) => void`. Cast `data` to the shape your agent sends.
 
 ---
 
@@ -74,15 +163,23 @@ ui.reset();                                // back to initial value
 An array of `AgentRun` objects, one per completed agent turn. Each run holds everything that happened between `RUN_STARTED` and `RUN_FINISHED`:
 
 ```typescript
+import type { AgentRun, RunItem, ReasoningState } from '@agentui/react';
+
 interface AgentRun {
   runId: string;
-  source: 'user' | 'agent';   // who initiated the run
-  userInput?: string;          // the user's message (when source === 'user')
-  items: RunItem[];            // text messages and tool calls in arrival order
-  reasoning?: ReasoningState;  // extended thinking block, if emitted
+  source: 'user' | 'agent'; // 'agent' when the agent initiates a run autonomously
+  userInput?: string;        // the user's message (when source === 'user')
+  items: RunItem[];          // text messages and tool calls in arrival order
+  reasoning?: ReasoningState;
   isStreaming: boolean;
   status: 'streaming' | 'finished' | 'error';
+  error?: string;            // set when status === 'error'
   timestamp: number;
+}
+
+interface ReasoningState {
+  content: string;
+  isComplete: boolean;       // false while the thinking block is still streaming
 }
 
 // Each item is either a streamed text message or a tool call, in arrival order
@@ -146,9 +243,23 @@ allRuns.map(run => (
 'error'      — stream error or RUN_ERROR event
 ```
 
+#### `agentState.error`
+
+Set when `status === 'error'`. Contains the error message string from the agent or the network layer.
+
+#### `agentState.threadId`
+
+The conversation session ID shared across all runs. Automatically generated on first run and kept stable throughout the component's lifetime. Pass it to your own storage layer if you want to persist and resume conversations.
+
 #### `agentState.currentStep`
 
 Set while a `STEP_STARTED` event is active (e.g. a named agent step like `"search"` or `"plan"`). Cleared on `STEP_FINISHED`. Useful for status bars.
+
+```tsx
+{agentState.currentStep && (
+  <span>Step: {agentState.currentStep.name}</span>
+)}
+```
 
 ---
 
@@ -195,7 +306,6 @@ function ToolCallCard({ tc }: { tc: RunItem & { kind: 'tool' } }) {
 const isStreaming =
   agentState.status === 'streaming' || agentState.status === 'connecting';
 
-// Disable send while streaming; show a stop button
 <button onClick={abort} disabled={!isStreaming}>Stop</button>
 <input disabled={isStreaming} onSubmit={sendMessage} />
 ```
@@ -217,6 +327,10 @@ const isStreaming =
 #### Re-sending cancels the active run
 
 `sendMessage` automatically aborts any in-progress run before starting a new one. You don't need to call `abort` first.
+
+#### Conversation history is managed automatically
+
+The library maintains the full wire-format message history internally and sends it to the agent on every run. You don't need to build or track a messages array — just render from `agentState.runs`.
 
 ---
 
