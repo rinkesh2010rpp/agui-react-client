@@ -1,33 +1,31 @@
-# AgentUI
+# @agentui/react
 
-A monorepo containing `@agentui/react` — a headless React library that converts raw [AG-UI](https://github.com/ag-ui-protocol/ag-ui) SSE events into streaming-aware React state — plus a demo chat application built on top of it.
+A headless React library that converts raw [AG-UI](https://github.com/ag-ui-protocol/ag-ui) SSE events into streaming-aware React state. You bring your own UI — the library handles the protocol.
 
-## Packages
+## Repo structure
 
-| Package | Description |
+| Path | Description |
 |---|---|
-| [`src/`](./src) | Headless library source — the publishable package |
+| [`src/`](./src) | Library source — hooks, types, reducer |
 | [`examples/with-chatscope`](./examples/with-chatscope) | Demo chat UI using [@chatscope/chat-ui-kit-react](https://chatscope.io/) |
 
-## Getting started
+## Run the demo locally
 
 ```bash
 npm install
 npm run dev        # starts demo app on http://localhost:5173
-npm run typecheck  # type-check all workspaces
+npm run typecheck  # type-check library + example
 ```
 
 Open the app, enter your AG-UI agent's URL in the config panel, and start chatting.
 
 ---
 
-## Using `@agentui/react` in your app
+## Using the library
 
-Install the package:
+### Installation
 
-```bash
-npm install @agentui/react
-```
+> **Note:** The package is not yet published to npm. To use it today, clone this repo and reference it via a local path or npm workspace.
 
 ### Hooks
 
@@ -57,12 +55,12 @@ Calling `sendMessage` while a run is active cancels it first. Calling `abort` mi
 
 #### `useUIState(initial)` → `[state, updaters]`
 
-Manages the state your app sends to the agent. The agent can read it to understand current UI context.
+Manages the state your app sends to the agent so it can understand current UI context.
 
 ```tsx
 const [uiState, ui] = useUIState({ page: 'home', selectedIds: [] });
 
-ui.update({ page: 'settings' });          // partial update
+ui.update({ page: 'settings' });           // partial update
 ui.set({ page: 'home', selectedIds: [] }); // full replace
 ui.reset();                                // back to initial value
 ```
@@ -91,7 +89,7 @@ interface AgentRun {
 
 #### `agentState.currentRun` — the live run
 
-Same shape as `AgentRun`, but updated in real time while streaming. `undefined` when idle.
+Same shape as `AgentRun`, updated in real time while streaming. `undefined` when idle.
 
 ```tsx
 // Combine completed + in-progress for rendering
@@ -144,7 +142,11 @@ function ToolCallCard({ tc }: { tc: ToolCallState }) {
   return (
     <div>
       <strong>{tc.toolCallName}</strong>
-      <pre>{tc.argsComplete ? JSON.stringify(JSON.parse(tc.argsAccumulated), null, 2) : tc.argsAccumulated}</pre>
+      <pre>
+        {tc.argsComplete
+          ? JSON.stringify(JSON.parse(tc.argsAccumulated), null, 2)
+          : tc.argsAccumulated}
+      </pre>
       {tc.result && <pre>Result: {tc.result}</pre>}
     </div>
   );
@@ -153,4 +155,6 @@ function ToolCallCard({ tc }: { tc: ToolCallState }) {
 
 ---
 
-See the full API reference and data-flow diagram in this README below.
+## License
+
+MIT
