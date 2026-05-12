@@ -1,13 +1,45 @@
 {
-  "name": "agentui-workspace",
-  "private": true,
-  "workspaces": [
-    "app",
-    "packages/*"
-  ],
+  "name": "@agentui/react",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Headless React library that converts AG-UI SSE events into streaming-aware React state",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "src"],
+  "workspaces": ["examples/*"],
   "scripts": {
-    "dev": "npm run dev --workspace=app",
-    "build": "npm run build --workspace=app",
-    "typecheck": "npm run typecheck --workspace=packages/agui-react && npm run typecheck --workspace=app"
-  }
+    "dev": "npm run dev --workspace=examples/with-chatscope",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspace=examples/with-chatscope"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@ag-ui/client": "latest",
+    "@ag-ui/core": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rinkesh2010rpp/agui-react-client.git"
+  },
+  "homepage": "https://github.com/rinkesh2010rpp/agui-react-client#readme",
+  "bugs": {
+    "url": "https://github.com/rinkesh2010rpp/agui-react-client/issues"
+  },
+  "keywords": ["ag-ui", "react", "agent", "streaming", "ai", "llm"],
+  "license": "MIT"
 }

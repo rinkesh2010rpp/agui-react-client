@@ -9,7 +9,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@agentui/react": ["../packages/agui-react/src/index.ts"]
+      "@agentui/react": ["../../src/index.ts"]
     },
     "skipLibCheck": true,
     "isolatedModules": true,

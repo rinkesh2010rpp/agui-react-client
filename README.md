@@ -6,8 +6,8 @@ A monorepo containing `@agentui/react` — a headless React library that convert
 
 | Package | Description |
 |---|---|
-| [`packages/agui-react`](./packages/agui-react) | Headless library — the publishable package |
-| [`app`](./app) | Demo chat UI using [@chatscope/chat-ui-kit-react](https://chatscope.io/) |
+| [`src/`](./src) | Headless library source — the publishable package |
+| [`examples/with-chatscope`](./examples/with-chatscope) | Demo chat UI using [@chatscope/chat-ui-kit-react](https://chatscope.io/) |
 
 ## Getting started
 
@@ -153,4 +153,4 @@ function ToolCallCard({ tc }: { tc: ToolCallState }) {
 
 ---
 
-See [packages/agui-react/README.md](./packages/agui-react/README.md) for the complete API reference.
+See the full API reference and data-flow diagram in this README below.

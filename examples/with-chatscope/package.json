@@ -1,5 +1,5 @@
 {
-  "name": "agentui-app",
+  "name": "with-chatscope",
   "private": true,
   "scripts": {
     "dev": "vite",

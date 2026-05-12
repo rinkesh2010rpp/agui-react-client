@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@agentui/react": path.resolve(__dirname, "../packages/agui-react/src/index.ts"),
+      "@agentui/react": path.resolve(__dirname, "../../src/index.ts"),
     },
   },
   server: {
