@@ -1,5 +1,8 @@
 # @agilab/react
 
+[![npm](https://img.shields.io/npm/v/@agilab/react)](https://www.npmjs.com/package/@agilab/react)
+[![license](https://img.shields.io/npm/l/@agilab/react)](./LICENSE)
+
 A headless React library that converts raw [AG-UI](https://github.com/ag-ui-protocol/ag-ui) SSE events into streaming-aware React state. You bring your own UI — the library handles the protocol.
 
 ## Repo structure
