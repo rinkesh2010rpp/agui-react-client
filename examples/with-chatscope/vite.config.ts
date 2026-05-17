@@ -7,7 +7,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@agilab/react": path.resolve(__dirname, "../../src/index.ts"),
     },
   },
   server: {

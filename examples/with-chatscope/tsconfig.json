@@ -8,8 +8,7 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@agilab/react": ["../../src/index.ts"]
+      "@/*": ["src/*"]
     },
     "skipLibCheck": true,
     "isolatedModules": true,
