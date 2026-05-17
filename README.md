@@ -25,7 +25,9 @@ Open the app, enter your AG-UI agent's URL in the config panel, and start chatti
 
 ### Installation
 
-> **Note:** The package is not yet published to npm. To use it today, clone this repo and reference it via a local path or npm workspace.
+```bash
+npm install @agilab/react
+```
 
 ### Quick start
 
