@@ -1,6 +1,6 @@
 {
   "name": "@agilab/react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "Headless React library that converts AG-UI SSE events into streaming-aware React state",
   "main": "./dist/index.js",
