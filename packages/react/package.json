@@ -1,0 +1,57 @@
+{
+  "name": "@agilab/react",
+  "version": "0.1.2",
+  "private": false,
+  "description": "Headless React library that converts AG-UI SSE events into streaming-aware React state",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@ag-ui/client": "latest",
+    "@ag-ui/core": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "tsup": "^8",
+    "typescript": "^5",
+    "vitest": "^4.1.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rinkesh2010rpp/agui-react-client.git"
+  },
+  "homepage": "https://github.com/rinkesh2010rpp/agui-react-client#readme",
+  "bugs": {
+    "url": "https://github.com/rinkesh2010rpp/agui-react-client/issues"
+  },
+  "keywords": [
+    "ag-ui",
+    "react",
+    "agent",
+    "streaming",
+    "ai",
+    "llm"
+  ],
+  "license": "MIT"
+}
