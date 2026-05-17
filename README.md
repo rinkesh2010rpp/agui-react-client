@@ -339,6 +339,17 @@ The library maintains the full wire-format message history internally and sends 
 
 ---
 
+## Roadmap
+
+| Version | Focus | What ships |
+|---|---|---|
+| **v0.2** | Foundation | `useMessages`, `useToolCalls`, `useSteps`, `useAgentStatus` — derived hooks so you stop writing boilerplate. `getToken` callback for auth. Reducer fixes: `STATE_SNAPSHOT`/`STATE_DELTA`, multiple reasoning blocks per run. |
+| **v0.3** | Interactions | Frontend tool calls — agent calls browser-registered functions directly, no server needed. Human-in-the-loop approval pattern. Optimistic messages. Retry on error. |
+| **v0.4** | Differentiation | Browser-compatible MCP tool servers. `useArtifacts` for named agent outputs. Multi-agent routing. |
+| **v0.5** | Production | Pluggable thread persistence. Conversation list. File attachments. SSE reconnect. Server-issued `threadId`. |
+
+---
+
 ## License
 
 MIT
