@@ -22,6 +22,8 @@ npm run typecheck  # type-check library + example
 
 Open the app, enter your AG-UI agent's URL in the config panel, and start chatting.
 
+> **Note:** The demo requires an AG-UI compatible backend. [`@agilab/emulator`](../../packages/emulator) — a local emulator for testing without a real agent — is coming soon.
+
 ---
 
 ## Using the library

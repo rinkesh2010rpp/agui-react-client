@@ -15,6 +15,8 @@ Headless React primitives for building agentic UIs on the [AG-UI protocol](https
 npm install @agilab/react
 ```
 
+The library connects your React app to any [AG-UI compatible backend](https://github.com/ag-ui-protocol/ag-ui). To try it without a real agent, `@agilab/emulator` is coming soon.
+
 See [`packages/react`](./packages/react) for full documentation.
 
 ## Development

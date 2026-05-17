@@ -87,6 +87,22 @@ function MainContent() {
           your own UI — the library handles the protocol. Point the chat at your
           agent to see it in action.
         </p>
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 max-w-md">
+          <span className="mt-0.5 shrink-0">ℹ️</span>
+          <span>
+            This example requires an{" "}
+            <a
+              href="https://github.com/ag-ui-protocol/ag-ui"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-amber-900"
+            >
+              AG-UI compatible backend
+            </a>{" "}
+            to connect to. <strong>@agilab/emulator</strong> — a local backend for
+            testing without a real agent — is coming soon.
+          </span>
+        </div>
       </div>
 
       {/* What it handles today */}
