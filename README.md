@@ -1,4 +1,4 @@
-# @agentui/react
+# @agilab/react
 
 A headless React library that converts raw [AG-UI](https://github.com/ag-ui-protocol/ag-ui) SSE events into streaming-aware React state. You bring your own UI — the library handles the protocol.
 
@@ -32,8 +32,8 @@ Open the app, enter your AG-UI agent's URL in the config panel, and start chatti
 The two hooks give you everything you need. Here is the minimal pattern — replace the plain HTML with whatever component library you prefer:
 
 ```tsx
-import { useAgentRun, useUIState } from '@agentui/react';
-import type { RunItem } from '@agentui/react';
+import { useAgentRun, useUIState } from '@agilab/react';
+import type { RunItem } from '@agilab/react';
 
 export function AgentChat() {
   const [uiState] = useUIState({});
@@ -82,7 +82,7 @@ export function AgentChat() {
 The main hook. Manages the SSE connection to your agent and reduces all incoming events into a single `agentState` object.
 
 ```tsx
-import { useAgentRun } from '@agentui/react';
+import { useAgentRun } from '@agilab/react';
 
 const { agentState, sendMessage, abort } = useAgentRun({
   config: {
@@ -119,7 +119,7 @@ const { agentState, sendMessage, abort } = useAgentRun({
 Manages the state your app sends to the agent so it can understand current UI context. Anything you want the agent to be aware of (current page, selected items, filters) goes here.
 
 ```tsx
-import { useUIState } from '@agentui/react';
+import { useUIState } from '@agilab/react';
 
 const [uiState, ui] = useUIState({ page: 'home', selectedIds: [] });
 
@@ -163,7 +163,7 @@ The handler type is `(data: unknown) => void`. Cast `data` to the shape your age
 An array of `AgentRun` objects, one per completed agent turn. Each run holds everything that happened between `RUN_STARTED` and `RUN_FINISHED`:
 
 ```typescript
-import type { AgentRun, RunItem, ReasoningState } from '@agentui/react';
+import type { AgentRun, RunItem, ReasoningState } from '@agilab/react';
 
 interface AgentRun {
   runId: string;

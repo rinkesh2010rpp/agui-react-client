@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@agentui/react": "*",
+    "@agilab/react": "*",
     "@chatscope/chat-ui-kit-react": "^2",
     "react": "^18",
     "react-dom": "^18",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { AgentConfig } from "@agentui/react";
+import type { AgentConfig } from "@agilab/react";
 
 interface AgentConfigPanelProps {
   config: AgentConfig;

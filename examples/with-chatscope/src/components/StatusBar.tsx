@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from "@agentui/react";
+import type { ConnectionStatus } from "@agilab/react";
 
 const STATUS_CONFIG: Record<
   ConnectionStatus,

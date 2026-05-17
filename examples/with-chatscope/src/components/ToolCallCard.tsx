@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ToolCallState } from "@agentui/react";
+import type { ToolCallState } from "@agilab/react";
 
 const STATUS_LABEL: Record<ToolCallState["status"], string> = {
   streaming:  "running",

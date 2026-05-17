@@ -8,8 +8,8 @@ import {
   TypingIndicator,
 } from "@chatscope/chat-ui-kit-react";
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
-import { useAgentRun, useUIState } from "@agentui/react";
-import type { AgentConfig, AgentRun, RunItem } from "@agentui/react";
+import { useAgentRun, useUIState } from "@agilab/react";
+import type { AgentConfig, AgentRun, RunItem } from "@agilab/react";
 import { StatusBar } from "./components/StatusBar";
 import { ToolCallCard } from "./components/ToolCallCard";
 import { AgentConfigPanel } from "./components/AgentConfigPanel";
@@ -77,7 +77,7 @@ function MainContent() {
       <div>
         <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 mb-4">
           <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-          <span className="text-xs font-medium text-indigo-600">@agentui/react</span>
+          <span className="text-xs font-medium text-indigo-600">@agilab/react</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 leading-tight">
           Headless AG-UI for React

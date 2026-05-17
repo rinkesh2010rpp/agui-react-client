@@ -153,7 +153,7 @@ interface ToolCall {
 
 ## How This Library Uses the Protocol
 
-`@agentui/react` wraps `@ag-ui/client`'s `HttpAgent` and exposes two hooks:
+`@agilab/react` wraps `@ag-ui/client`'s `HttpAgent` and exposes two hooks:
 
 ### `useAgentRun(options)`
 
