@@ -89,7 +89,7 @@ describe("text message lifecycle", () => {
     });
     const item = state.agentState.currentRun?.items[0];
     expect(item?.kind).toBe("text");
-    expect(item?.content).toBe("");
+    expect(item?.kind === "text" && item.content).toBe("");
   });
 
   it("accumulates content across TEXT_MESSAGE_CONTENT events", () => {
