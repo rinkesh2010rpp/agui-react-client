@@ -179,8 +179,16 @@ function ReasoningBlock({
   );
 }
 
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function renderRun(run: AgentRun): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
+  const sentTime = formatTime(run.timestamp);
 
   if (run.userInput) {
     nodes.push(
@@ -191,6 +199,7 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           sender: "user",
           direction: "outgoing",
           position: "single",
+          sentTime,
         }}
       />
     );
@@ -213,6 +222,7 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           sender: "assistant",
           direction: "incoming",
           position: "single",
+          sentTime,
         }}
       >
         {run.isStreaming && (
@@ -231,6 +241,7 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           sender: "assistant",
           direction: "incoming",
           position: "single",
+          sentTime,
         }}
       >
         <Message.CustomContent>
