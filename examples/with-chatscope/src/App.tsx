@@ -225,11 +225,7 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           position: "single",
         }}
       >
-        <Message.Footer sentTime={sentTime}>
-          {run.isStreaming && (
-            <span className="animate-pulse text-gray-400 text-xs ml-1">▊</span>
-          )}
-        </Message.Footer>
+        <Message.Footer sentTime={sentTime} />
       </Message>
     );
   } else {
