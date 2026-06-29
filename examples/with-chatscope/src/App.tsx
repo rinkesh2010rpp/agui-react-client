@@ -8,6 +8,7 @@ import {
   TypingIndicator,
 } from "@chatscope/chat-ui-kit-react";
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+import ReactMarkdown from "react-markdown";
 import { useAgentRun, useUIState } from "@agilab/react";
 import type { AgentConfig, AgentRun, RunItem } from "@agilab/react";
 import { StatusBar } from "./components/StatusBar";
@@ -219,12 +220,20 @@ function renderRun(run: AgentRun): React.ReactNode[] {
       <Message
         key={`${run.runId || run.timestamp}-assistant`}
         model={{
-          message: displayText,
+          type: "custom",
           sender: "assistant",
           direction: "incoming",
           position: "single",
         }}
       >
+        <Message.CustomContent>
+          <div className="prose prose-sm max-w-none px-1 pt-1 text-gray-800">
+            <ReactMarkdown>{displayText}</ReactMarkdown>
+            {run.isStreaming && (
+              <span className="animate-pulse text-gray-400 ml-0.5">▊</span>
+            )}
+          </div>
+        </Message.CustomContent>
         <Message.Footer sentTime={sentTime} />
       </Message>
     );
@@ -248,11 +257,10 @@ function renderRun(run: AgentRun): React.ReactNode[] {
                 return <ToolCallCard key={item.toolCallId} tc={item} />;
               }
               return (
-                <div
-                  key={item.messageId}
-                  className="px-1 pt-1 text-sm text-gray-800 whitespace-pre-wrap"
-                >
-                  {item.content}
+                <div key={item.messageId} className="px-1 pt-1">
+                  <div className="prose prose-sm max-w-none text-gray-800">
+                    <ReactMarkdown>{item.content}</ReactMarkdown>
+                  </div>
                   {run.isStreaming && !item.isComplete && (
                     <span className="animate-pulse text-gray-400 ml-0.5">▊</span>
                   )}
