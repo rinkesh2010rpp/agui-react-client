@@ -199,9 +199,10 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           sender: "user",
           direction: "outgoing",
           position: "single",
-          sentTime,
         }}
-      />
+      >
+        <Message.Footer sentTime={sentTime} />
+      </Message>
     );
   }
 
@@ -222,14 +223,13 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           sender: "assistant",
           direction: "incoming",
           position: "single",
-          sentTime,
         }}
       >
-        {run.isStreaming && (
-          <Message.Footer>
-            <span className="animate-pulse text-gray-400 text-xs">▊</span>
-          </Message.Footer>
-        )}
+        <Message.Footer sentTime={sentTime}>
+          {run.isStreaming && (
+            <span className="animate-pulse text-gray-400 text-xs ml-1">▊</span>
+          )}
+        </Message.Footer>
       </Message>
     );
   } else {
@@ -241,7 +241,6 @@ function renderRun(run: AgentRun): React.ReactNode[] {
           sender: "assistant",
           direction: "incoming",
           position: "single",
-          sentTime,
         }}
       >
         <Message.CustomContent>
@@ -270,6 +269,7 @@ function renderRun(run: AgentRun): React.ReactNode[] {
             )}
           </div>
         </Message.CustomContent>
+        <Message.Footer sentTime={sentTime} />
       </Message>
     );
   }
